@@ -1,0 +1,40 @@
+Bug Log, _TheKTeam:
+
+Checkpoint 1:
+	Bug 1 (major):	Keyboard handler freeze
+		Issue: The keyboard won't type more than 1 character
+			Things tested: 	
+				- The RTC still continues to work, so kernel didn't freeze
+				- EOI has been sent, can't test whether it registered but send_eoi works correctly with RTC
+				- Implementing a basic assembly wrapper causes a QEMU crash
+				- iret with inline assembly produces no change
+		Fix: We needed to create an assembly wrapper with iret AND pushal/popal, .globl and extern it, and push it into IDT
+	Bug 2 (major):	Paging triple fault
+		Issue: Enabling paging in various way causes everything from triple faults to QEMU crashes
+			Things tested:
+				- Changing the order and style of the asm volatile to make cr0 last and include variables
+				- Swapping around entries in the IDT
+				- A combination of the above 2
+				- changing init variables in the paging structures
+		Fix: By pure luck we found that the IDT entries' jumptable was being pushed in every 32 bits, but it only works if pushed in every 64.
+				We don't know if this is because the values need to be double for bitshifting or if there is some sort of padding issue.
+	Bug 3 (minor): IRQ unmask order
+		Issue:	When unmasking IRQs, we were going in decreasing priority, but that caused an issue with the RTC
+		Fix:	We swapped the unmasking of IRQ2 and IRQ8 and the issue resolved itself.
+		
+Checkpoint 2:
+	Bug 4 (major) : File Read Fault
+		Issue: We kept getting a page fault any time we tried to read a file
+			Things tested:
+				- Modularly tested file_init, file_open, and both read_dentry's.  They seemed to be getting coorect data
+				- Tried adding 1B and 4B multiples to the address values since we weren't sure if it was being treated as a uint32_t
+				- Tried copying data over into statically allocated structs instead of just pointing to the addresses
+		Fix: We still don't know where our address math was wrong but creating helper functions to calculate our addresses for inodes and dblocks fixed the issue.
+	
+	Bug 5 (minor) : Read Directory Garbage
+		Issue: Read directory would print garbage to the screen in random ways
+		Fix: Rather than reading each directory entry filename completely, we would cut it off at 32 chars and also check for '\0'
+		
+Checkpoint 3:
+	
+		
